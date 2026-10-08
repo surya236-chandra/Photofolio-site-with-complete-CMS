@@ -1,0 +1,105 @@
+// Prisma schema — SQLite for offline dev.
+// To go online (Supabase/Postgres): change provider to "postgresql"
+// and set DATABASE_URL to your Supabase connection string, then run
+//   npx prisma migrate deploy   (or  npx prisma db push)
+// See README "Going online" section.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         String   @default("editor") // "admin" | "editor"
+  createdAt    DateTime @default(now())
+  posts        Post[]
+}
+
+model Category {
+  id       String    @id @default(cuid())
+  name     String
+  slug     String    @unique
+  order    Int       @default(0)
+  projects Project[]
+}
+
+model Project {
+  id             String    @id @default(cuid())
+  title          String
+  slug           String    @unique
+  client         String?
+  year           String?
+  role           String? // e.g. "Photography, Direction"
+  excerpt        String?
+  description    String? // markdown
+  coverImage     String?
+  videoUrl       String? // optional vimeo/youtube embed url
+  gallery        String? // JSON array of image urls
+  categoryId     String?
+  category       Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  featured       Boolean   @default(false)
+  published      Boolean   @default(true)
+  order          Int       @default(0)
+  seoTitle       String?
+  seoDescription String?
+  ogImage        String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model Post {
+  id             String    @id @default(cuid())
+  title          String
+  slug           String    @unique
+  excerpt        String?
+  content        String? // markdown
+  coverImage     String?
+  tags           String? // comma separated
+  published      Boolean   @default(false)
+  publishedAt    DateTime?
+  authorId       String?
+  author         User?     @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  seoTitle       String?
+  seoDescription String?
+  ogImage        String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model Page {
+  id             String   @id @default(cuid())
+  slug           String   @unique // "about", "services", ...
+  title          String
+  content        String? // markdown
+  seoTitle       String?
+  seoDescription String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  subject   String?
+  body      String
+  read      Boolean  @default(false)
+  archived  Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+// Single-row key/value store for all site settings + active theme (JSON blob).
+model Setting {
+  id        Int      @id @default(1)
+  data      String   @default("{}")
+  updatedAt DateTime @updatedAt
+}
